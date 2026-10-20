@@ -1,0 +1,13 @@
+//
+//  template_setup.xcconfig
+//     --> copy to developer_setup.xcconfig (gitignored) and fill in your own values
+//
+
+// Your Apple Developer Team ID. Find it in Xcode > Settings > Accounts, or
+// on developer.apple.com under Membership.
+TEAM_ID = YOUR_TEAM_ID
+
+// Must differ from the App Store app's bundle ID (com.aaronpk.overland) so a
+// build signed with your own team installs as a separate app instead of
+// conflicting with it.
+BUNDLE_ID = com.yourname.overland

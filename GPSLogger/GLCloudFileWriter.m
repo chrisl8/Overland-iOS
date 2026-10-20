@@ -9,7 +9,6 @@
 
 #import "GLCloudFileWriter.h"
 
-static NSString *const GLCloudContainerIdentifier = @"iCloud.com.aaronpk.overland";
 static NSString *const GLFeatureCollectionHeader = @"{\"type\":\"FeatureCollection\",\"features\":[\n";
 static NSString *const GLFeatureCollectionTrailer = @"\n]}\n";
 
@@ -67,7 +66,7 @@ static NSString *const GLFeatureCollectionTrailer = @"\n]}\n";
 // Looking up the container can block, so this runs on the writer's queue.
 - (NSURL *)documentsURL {
     if (_documentsURL == nil) {
-        NSURL *container = [[NSFileManager defaultManager] URLForUbiquityContainerIdentifier:GLCloudContainerIdentifier];
+        NSURL *container = [[NSFileManager defaultManager] URLForUbiquityContainerIdentifier:nil];
         if (container) {
             _documentsURL = [container URLByAppendingPathComponent:@"Documents" isDirectory:YES];
         }

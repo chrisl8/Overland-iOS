@@ -58,7 +58,7 @@
 	<true/>
 	<key>NSUbiquitousContainers</key>
 	<dict>
-		<key>iCloud.com.aaronpk.overland</key>
+		<key>iCloud.$(BUNDLE_ID)</key>
 		<dict>
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
