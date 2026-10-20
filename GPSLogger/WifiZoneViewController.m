@@ -19,11 +19,12 @@ typedef NS_ENUM(NSInteger, WifiZoneField) {
     WifiZoneFieldName,
     WifiZoneFieldLatitude,
     WifiZoneFieldLongitude,
+    WifiZoneFieldMinTime,
     WifiZoneFieldBSSID,
 };
 
 typedef NS_ENUM(NSInteger, WifiZoneSection) {
-    // Wifi name, latitude and longitude
+    // Wifi name, latitude, longitude and minimum time between points
     WifiZoneSectionLocation,
     // The "This access point only" switch, and the access point's address when it's on
     WifiZoneSectionAccessPoint,
@@ -127,7 +128,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
 
     if (self.zone) {
         NSString *bssid = self.zone[@"bssid"] ?: @"";
-        self.values = [@[self.zone[@"name"] ?: @"", self.zone[@"latitude"] ?: @"", self.zone[@"longitude"] ?: @"", bssid] mutableCopy];
+        self.values = [@[self.zone[@"name"] ?: @"", self.zone[@"latitude"] ?: @"", self.zone[@"longitude"] ?: @"", [self.zone[@"min_time"] intValue] > 0 ? [self.zone[@"min_time"] stringValue] : @"", bssid] mutableCopy];
         self.limitToAccessPoint = (bssid.length > 0);
     } else {
         // Start a new zone at the current wifi network, access point and location
@@ -140,7 +141,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
             longitude = [NSString stringWithFormat:@"%.5f", loc.coordinate.longitude];
         }
         NSString *bssid = [GLManager currentWifiBSSID] ?: @"";
-        self.values = [@[[GLManager currentWifiHotSpotName] ?: @"", latitude, longitude, bssid] mutableCopy];
+        self.values = [@[[GLManager currentWifiHotSpotName] ?: @"", latitude, longitude, @"", bssid] mutableCopy];
         self.limitToAccessPoint = (bssid.length > 0);
 
         // The cached wifi network may be out of date, so look it up again
@@ -312,7 +313,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     if (section == WifiZoneSectionAccessPoint) {
         return self.limitToAccessPoint ? 2 : 1;
     }
-    return 3;
+    return 4;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -351,6 +352,12 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
             cell.nameLabel.text = @"Longitude";
             cell.textField.placeholder = @"-122.68134";
             cell.textField.keyboardType = UIKeyboardTypeNumbersAndPunctuation;
+            cell.textField.returnKeyType = UIReturnKeyNext;
+            break;
+        case WifiZoneFieldMinTime:
+            cell.nameLabel.text = @"Min Seconds";
+            cell.textField.placeholder = @"Same as settings";
+            cell.textField.keyboardType = UIKeyboardTypeNumberPad;
             cell.textField.returnKeyType = UIReturnKeyDone;
             break;
         case WifiZoneFieldBSSID:
@@ -372,7 +379,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     if (section == WifiZoneSectionAccessPoint) {
         return @"When this is on, the zone only applies while you're connected through this access point. A zone for one access point takes priority over a zone for the whole network.";
     }
-    return @"While you're connected to this wifi network, your location will be reported as this latitude and longitude.";
+    return @"While you're connected to this wifi network, your location will be reported as this latitude and longitude. Min Seconds replaces the minimum time between points while you're on this network, except during a trip.";
 }
 
 #pragma mark - UITextFieldDelegate
@@ -390,7 +397,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    if (textField.tag < WifiZoneFieldLongitude) {
+    if (textField.tag < WifiZoneFieldMinTime) {
         WifiZoneFieldCell *next = [self.tableView cellForRowAtIndexPath:[self indexPathForField:textField.tag + 1]];
         [next.textField becomeFirstResponder];
     } else {
@@ -440,6 +447,17 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     return [scanner scanDouble:&value] && scanner.isAtEnd && fabs(value) <= limit;
 }
 
+// Empty means use the global setting
+- (BOOL)minTimeIsValid {
+    NSString *minTime = [self trimmedValue:WifiZoneFieldMinTime];
+    if (minTime.length == 0) {
+        return YES;
+    }
+    NSScanner *scanner = [NSScanner scannerWithString:minTime];
+    NSInteger value;
+    return [scanner scanInteger:&value] && scanner.isAtEnd && value >= 0;
+}
+
 // The access point this zone is limited to, normalized, or an empty string for any access point.
 // Nil if the address entered isn't valid.
 - (NSString *)accessPoint {
@@ -462,6 +480,9 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     if (![self isCoordinate:[self trimmedValue:WifiZoneFieldLongitude] withinLimit:180]) {
         return @"Enter a longitude between -180 and 180.";
     }
+    if (![self minTimeIsValid]) {
+        return @"Enter the minimum number of seconds between points as a whole number, or leave it empty.";
+    }
 
     *section = WifiZoneSectionAccessPoint;
     NSString *accessPoint = [self accessPoint];
@@ -470,7 +491,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     }
     for (NSDictionary *other in self.otherZones) {
         NSString *otherAccessPoint = [GLManager normalizedBSSID:other[@"bssid"]] ?: @"";
-        if ([other[@"name"] isEqualToString:name] && [otherAccessPoint isEqualToString:accessPoint]) {
+        if ([other[@"name"] caseInsensitiveCompare:name] == NSOrderedSame && [otherAccessPoint isEqualToString:accessPoint]) {
             return accessPoint.length > 0 ? @"There is already a zone for this access point." : @"There is already a zone for this whole wifi network.";
         }
     }
@@ -507,6 +528,10 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
         @"latitude": [self trimmedValue:WifiZoneFieldLatitude],
         @"longitude": [self trimmedValue:WifiZoneFieldLongitude],
     } mutableCopy];
+    NSInteger minTime = [self trimmedValue:WifiZoneFieldMinTime].integerValue;
+    if (minTime > 0) {
+        zone[@"min_time"] = @(minTime);
+    }
     NSString *accessPoint = [self accessPoint];
     if (accessPoint.length > 0) {
         zone[@"bssid"] = accessPoint;
@@ -576,7 +601,11 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
     NSDictionary *zone = self.zones[indexPath.row];
     cell.textLabel.text = zone[@"name"];
     NSString *accessPoint = [zone[@"bssid"] length] > 0 ? zone[@"bssid"] : @"Any access point";
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ · %@, %@", accessPoint, zone[@"latitude"], zone[@"longitude"]];
+    NSString *detail = [NSString stringWithFormat:@"%@ · %@, %@", accessPoint, zone[@"latitude"], zone[@"longitude"]];
+    if ([zone[@"min_time"] intValue] > 0) {
+        detail = [detail stringByAppendingFormat:@" · every %ds", [zone[@"min_time"] intValue]];
+    }
+    cell.detailTextLabel.text = detail;
     return cell;
 }
 

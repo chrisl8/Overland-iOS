@@ -1928,11 +1928,16 @@ const double MPH_to_METERSPERSECOND = 0.447;
     self.lastDeviceLocation = [locations lastObject];
 
     // If a wifi override is configured, replace the input location list with the location in the wifi mapping
-    if([GLManager currentWifiHotSpotName]) {
-        CLLocation *wifiLocation = [self currentLocationFromWifiName:[GLManager currentWifiHotSpotName] bssid:[GLManager currentWifiBSSID]];
-        if(wifiLocation) {
-            locations = @[wifiLocation];
-        }
+    NSDictionary *activeZone = [self wifiZoneMatchingName:[GLManager currentWifiHotSpotName] bssid:[GLManager currentWifiBSSID]];
+    if(activeZone) {
+        locations = @[[self locationForWifiZone:activeZone]];
+    }
+
+    // A zone can set its own minimum time between points, but trip settings always win
+    int minSeconds = self.discardPointsWithinSecondsCurrentValue;
+    int zoneMinSeconds = [activeZone[@"min_time"] intValue];
+    if(activeZone && !self.tripInProgress && zoneMinSeconds > 0) {
+        minSeconds = zoneMinSeconds;
     }
     
     // NSLog(@"Received %d locations", (int)locations.count);
@@ -1994,9 +1999,9 @@ const double MPH_to_METERSPERSECOND = 0.447;
             continue;
         }
 
-        if(self.discardPointsWithinSecondsCurrentValue > 1) {
+        if(minSeconds > 1) {
             int timeInterval = (int)[loc.timestamp timeIntervalSinceDate:lastLocationSeen.timestamp];
-            if(timeInterval < self.discardPointsWithinSecondsCurrentValue) {
+            if(timeInterval < minSeconds) {
                 continue;
             }
         }
@@ -2414,36 +2419,38 @@ const double MPH_to_METERSPERSECOND = 0.447;
  also be used to pause location updates when the user gets home.
 */
 
-- (CLLocation *)currentLocationFromWifiName:(NSString *)wifi bssid:(NSString *)bssid {
-    if(wifi == nil) {
+// SSIDs are compared case-insensitively, because a mismatch would fail silently.
+- (BOOL)zone:(NSDictionary *)zone matchesWifiName:(NSString *)wifi {
+    NSString *name = zone[@"name"];
+    return [name isKindOfClass:[NSString class]] && [name caseInsensitiveCompare:wifi] == NSOrderedSame;
+}
+
+- (NSDictionary *)wifiZoneMatchingName:(NSString *)wifi bssid:(NSString *)bssid {
+    if(wifi.length == 0) {
         return nil;
     }
+
+    NSArray *zones = self.wifiZones;
 
     // A zone limited to the current access point takes priority over a zone for the whole network
-    NSDictionary *matchingZone = nil;
     if(bssid.length > 0) {
-        for(NSDictionary *zone in self.wifiZones) {
-            if([zone[@"name"] isEqualToString:wifi] && [[GLManager normalizedBSSID:zone[@"bssid"]] isEqualToString:bssid]) {
-                matchingZone = zone;
-                break;
+        for(NSDictionary *zone in zones) {
+            if([self zone:zone matchesWifiName:wifi] && [[GLManager normalizedBSSID:zone[@"bssid"]] isEqualToString:bssid]) {
+                return zone;
             }
         }
     }
-    if(matchingZone == nil) {
-        for(NSDictionary *zone in self.wifiZones) {
-            if([zone[@"name"] isEqualToString:wifi] && [zone[@"bssid"] length] == 0) {
-                matchingZone = zone;
-                break;
-            }
+    for(NSDictionary *zone in zones) {
+        if([self zone:zone matchesWifiName:wifi] && [zone[@"bssid"] length] == 0) {
+            return zone;
         }
     }
+    return nil;
+}
 
-    if(matchingZone == nil) {
-        return nil;
-    }
-
-    double latitude = [matchingZone[@"latitude"] doubleValue];
-    double longitude = [matchingZone[@"longitude"] doubleValue];
+- (CLLocation *)locationForWifiZone:(NSDictionary *)zone {
+    double latitude = [zone[@"latitude"] doubleValue];
+    double longitude = [zone[@"longitude"] doubleValue];
     CLLocationCoordinate2D coord = CLLocationCoordinate2DMake(latitude, longitude);
     NSDate *timestamp = NSDate.date;
 
