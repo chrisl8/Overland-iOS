@@ -144,6 +144,7 @@
 		A1A1A1A1A1A1A1A1A1A10001 /* template_setup.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = template_setup.xcconfig; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A10002 /* Overland-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Overland-Debug.xcconfig"; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A10003 /* Overland-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Overland-Release.xcconfig"; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A10005 /* Overland-Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Overland-Shared.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -333,6 +334,7 @@
 			children = (
 				A1A1A1A1A1A1A1A1A1A10002 /* Overland-Debug.xcconfig */,
 				A1A1A1A1A1A1A1A1A1A10003 /* Overland-Release.xcconfig */,
+				A1A1A1A1A1A1A1A1A1A10005 /* Overland-Shared.xcconfig */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -562,6 +564,7 @@
 /* Begin XCBuildConfiguration section */
 		0FA1005369F3760CABFBC7E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1A1A1A1A1A1A1A1A1A10005 /* Overland-Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -587,6 +590,7 @@
 		};
 		0FA1840DEDAA1D03ED91261A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1A1A1A1A1A1A1A1A1A10005 /* Overland-Shared.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;

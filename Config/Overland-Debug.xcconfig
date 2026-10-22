@@ -1,7 +1,2 @@
 #include "../Pods/Target Support Files/Pods-Overland/Pods-Overland.debug.xcconfig"
-
-// Defaults, so builds without developer_setup.xcconfig (CI) still resolve.
-BUNDLE_ID = com.aaronpk.overland
-TEAM_ID =
-
-#include? "../developer_setup.xcconfig"
+#include "Overland-Shared.xcconfig"
