@@ -18,6 +18,9 @@ KEY_PATH="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_
 team=$(sed -n 's/^TEAM_ID *= *//p' developer_setup.xcconfig)
 # Every upload needs a higher build number than the last, so use the time.
 build=$(date +%Y%m%d%H%M)
+# The signing key can also sit in another, locked keychain earlier in the search list (a
+# separate build keychain, say), which makes codesign fail with errSecInternalComponent.
+# Pointing codesign at the login keychain avoids that.
 out=build
 auth=(-allowProvisioningUpdates
       -authenticationKeyPath "$KEY_PATH"
@@ -48,6 +51,7 @@ xcodebuild archive \
   -destination 'generic/platform=iOS' \
   -archivePath "$out/Overland.xcarchive" \
   CURRENT_PROJECT_VERSION="$build" \
+  OTHER_CODE_SIGN_FLAGS="--keychain $HOME/Library/Keychains/login.keychain-db" \
   "${auth[@]}"
 
 echo "Exporting and uploading to TestFlight"
