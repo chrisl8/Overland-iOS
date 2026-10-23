@@ -2464,10 +2464,51 @@ const double MPH_to_METERSPERSECOND = 0.447;
     return loc;
 }
 
+// Zones are stored with string "name", "latitude" and "longitude". An older layout stored an "ssid"
+// with numeric coordinates under the same defaults key, so convert it and drop entries that aren't usable.
+- (NSArray *)normalizedWifiZones:(NSArray *)stored changed:(BOOL *)changed {
+    NSMutableArray *zones = [NSMutableArray arrayWithCapacity:stored.count];
+    for(id entry in stored) {
+        if(![entry isKindOfClass:[NSDictionary class]]) {
+            *changed = YES;
+            continue;
+        }
+
+        NSMutableDictionary *zone = [entry mutableCopy];
+        id name = zone[@"name"] ?: zone[@"ssid"];
+        if(![name isKindOfClass:[NSString class]] || [name length] == 0) {
+            *changed = YES;
+            continue;
+        }
+        if(zone[@"ssid"] || ![zone[@"name"] isKindOfClass:[NSString class]]) {
+            zone[@"name"] = name;
+            [zone removeObjectForKey:@"ssid"];
+            *changed = YES;
+        }
+        for(NSString *key in @[@"latitude", @"longitude"]) {
+            id value = zone[key];
+            if([value isKindOfClass:[NSNumber class]]) {
+                zone[key] = [value stringValue];
+                *changed = YES;
+            } else if(![value isKindOfClass:[NSString class]]) {
+                zone[key] = @"";
+                *changed = YES;
+            }
+        }
+        [zones addObject:zone];
+    }
+    return zones;
+}
+
 - (NSArray *)wifiZones {
     NSArray *zones = [[NSUserDefaults standardUserDefaults] arrayForKey:GLWifiZonesDefaultsName];
     if(zones) {
-        return zones;
+        BOOL changed = NO;
+        NSArray *normalized = [self normalizedWifiZones:zones changed:&changed];
+        if(changed) {
+            [self saveWifiZones:normalized];
+        }
+        return normalized;
     }
 
     // Earlier versions stored a single wifi zone in separate keys. Move it into the list.

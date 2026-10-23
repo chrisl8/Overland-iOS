@@ -438,7 +438,7 @@ static NSString *const AccessPointPlaceholder = @"3c:22:fb:1a:00:11";
 #pragma mark - Validation
 
 - (NSString *)trimmedValue:(WifiZoneField)field {
-    return [self.values[field] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    return [[self.values[field] description] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
 
 - (BOOL)isCoordinate:(NSString *)text withinLimit:(double)limit {
