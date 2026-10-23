@@ -3,6 +3,9 @@
 #
 #   ASC_ISSUER_ID=<uuid> scripts/testflight.sh
 #
+# Run this from a Terminal window on the Mac's own desktop session. From tmux, ssh or an
+# automated tool, codesign can't reach the signing key and fails with errSecInternalComponent.
+#
 # Needs developer_setup.xcconfig (TEAM_ID, BUNDLE_ID) and an App Store Connect API key at
 # ~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8. The app record for BUNDLE_ID
 # must already exist in App Store Connect.
