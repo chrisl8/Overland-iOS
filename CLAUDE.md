@@ -17,6 +17,8 @@ open Overland.xcworkspace
 
 `scripts/testflight.sh` archives a Release build and uploads it to TestFlight (needs `ASC_ISSUER_ID`; see the script header). Run it from a Terminal on the Mac's desktop session, not from tmux, ssh or Claude Code: codesign can't reach the signing key there and fails with `errSecInternalComponent`. The same applies to any command-line device build.
 
+`scripts/install-release.sh` builds a Release configuration and installs it on the connected iPhone (default device name SonicScrewdriver), same desktop-Terminal requirement.
+
 There is no test target. `.github/workflows/release.yml` builds an unsigned `.ipa` when a `v*` tag is pushed. It checks the tag against `CFBundleShortVersionString`.
 
 ## Local changes on top of upstream
